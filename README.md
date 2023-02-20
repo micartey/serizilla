@@ -23,11 +23,11 @@
 
 ## 📚 Introduction
 
-This project aims to easily serialize objects to strings and strings to the corresponding objects. While Java presents its own features, there are some use cases, e.g. Sharing objects between programming languages ​​or sending objects over the network when normal serialization does not meet the required criteria.
+This project aims to easily serialize objects to strings and strings to the corresponding objects. While Java presents its own features, there are some use cases, e.g. sharing objects between programming languages ​​or sending objects over the network when normal serialization does not meet the required criteria.
 
 ## 🔗 Build Tools
 
-To use this porject as a dependency you might want to use a build tool like maven or gradle. An easy way for each and every project, is to use [jitpack](https://jitpack.io/#micartey/serializer/main-SNAPSHOT) as it makes it easy to implement and use. The following example is for maven specific, as I personally don't use gradle that much.
+To use this project as a dependency you might want to use a build tool like maven or gradle. An easy way for each and every project, is to use [jitpack](https://jitpack.io/#micartey/serializer/main-SNAPSHOT) as it makes it easy to implement and use
 
 ### Maven
 
@@ -52,9 +52,28 @@ Lastly, after adding the repository to all your other repositories, you have to 
 </dependency>
 ```
 
+### Gradle
+
+First of all add a new repository to your `build.gradle` file to be able to download the dependecies provided by jitpack.
+
+```groovy
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+```
+
+Lastly, after adding the repository to all your other repositories, you have to add the following segment to your dependencies.
+
+```groovy
+dependencies {
+  implementation 'com.github.micartey:serializer:main-SNAPSHOT'
+}
+```
+
+
 ## 🎈 Getting started
 
-The serializer heavily depends on annotations as most of my other projects do as well. Each class that should be serialized is called an `Packet` because this project was mainly developed for networking. To get started, add the following annotation on top of you class:
+The serializer heavily depends on annotations as most of my other projects do as well. Each class that should be serialized is called a `Packet` because this project was mainly developed for networking. To get started, add the following annotation on top of you class:
 
 ```java
 @Packet.Description(
@@ -62,7 +81,7 @@ The serializer heavily depends on annotations as most of my other projects do as
 )
 ```
 
-You class also needs to extend the Packet classs. You also need a default constructor with no parameters.
+You class also needs to extend the Packet class. You also need a default constructor with no parameters.
 
 ```java
 @Packet.Description(
@@ -73,7 +92,7 @@ public class MyTestClass extends Packet {
 }
 ```
 
-The last step is to provide all your fields with annotations. You can also specifiy that a field is not required but optional. That means that if the value is not present it will be ignored, however if present it will be set. Not specifiying a non optional field will result in an RuntimeException.
+The last step is to provide all your fields with annotations. You can also specifiy that a field is not required but optional. That means that if the value is not present it will be ignored, however if present it will be set. Not specifiying a non optional field will result in a RuntimeException.
 
 ```java
 @Packet.Value(name = "names")
@@ -86,4 +105,4 @@ public String test;
 
 ### Serializing classes
 
-You can also serialize classes that are not top level. This only requires to have an `toString` and `valueOf` method as many other Java classes already provide by default.
+You can also serialize classes that are not top level. This only requires to have a `toString` and `valueOf` method as many other Java classes already provide by default.
