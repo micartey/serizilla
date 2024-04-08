@@ -27,8 +27,7 @@ public abstract class Packet {
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
-    public @interface Value {
-        String name();
-        int length() default 128;
+    public @interface Field {
+        int value();
     }
 }

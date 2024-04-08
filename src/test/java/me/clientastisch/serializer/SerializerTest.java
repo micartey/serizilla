@@ -2,7 +2,6 @@ package me.clientastisch.serializer;
 
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -13,10 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 )
 public class SerializerTest extends Packet {
 
-    @Packet.Value(name = "test", length = 50)
+    @Field(value = 50)
     public TestClass test = new TestClass("Hallo");
 
-    @Packet.Value(name = "name", length = 100)
+    @Field(value = 100)
     public List<String> name = Arrays.asList("hey", "du", "da");
 
     @Test

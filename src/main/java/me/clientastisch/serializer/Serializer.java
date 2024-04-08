@@ -60,17 +60,17 @@ public class Serializer {
         parts.add(uuidPart);
 
         for (Field field : getFields(packet.getClass())) {
-            Packet.Value value = field.getAnnotation(Packet.Value.class);
+            Packet.Field value = field.getAnnotation(Packet.Field.class);
 
             byte[] contents = String.valueOf(field.get(packet)).getBytes(StandardCharsets.US_ASCII);
-            byte[] part = new byte[value.length()];
+            byte[] part = new byte[value.value()];
 
             // Make sure that the reserved length is sufficient
             if (part.length < contents.length) {
                 throw new IllegalStateException(String.format(
                         "Content for field %s exceedes reserved length of %s bytes",
                         field.getName(),
-                        value.length())
+                        value.value())
                 );
             }
 
@@ -115,13 +115,13 @@ public class Serializer {
 
         int offset = this.headerLength;
         for (Field field : getFields(instance.getClass())) {
-            Packet.Value value = field.getAnnotation(Packet.Value.class);
+            Packet.Field value = field.getAnnotation(Packet.Field.class);
 
-            byte[] contents = new byte[value.length()];
-            System.arraycopy(bytes, offset, contents, 0, value.length());
+            byte[] contents = new byte[value.value()];
+            System.arraycopy(bytes, offset, contents, 0, value.value());
             contents = removeTail(contents);
 
-            offset += value.length();
+            offset += value.value();
 
             String content = new String(contents, StandardCharsets.US_ASCII);
             field.set(instance, convert(field.getType(), content));
@@ -155,7 +155,7 @@ public class Serializer {
      * @return all Fields in a List
      */
     private List<Field> getFields(Class<? extends Packet> packet) {
-        return Arrays.stream(packet.getFields()).filter(field -> field.isAnnotationPresent(Packet.Value.class)).collect(Collectors.toList());
+        return Arrays.stream(packet.getFields()).filter(field -> field.isAnnotationPresent(Packet.Field.class)).collect(Collectors.toList());
     }
 
     /**
