@@ -14,6 +14,16 @@ public class Serializer {
 
     private final CopyOnWriteArrayList<Class<? extends Packet>> classes = new CopyOnWriteArrayList<>();
 
+    private final int headerLength;
+
+    public Serializer(int headerLength) {
+        this.headerLength = headerLength;
+    }
+
+    public Serializer() {
+        this(40);
+    }
+
     /**
      * Add a new class to the known packets
      *
@@ -45,7 +55,7 @@ public class Serializer {
 
         // Reserve bytes for packet identifier (uuid)
         byte[] uuid = packet.getDescription().uuid().getBytes(StandardCharsets.US_ASCII);
-        byte[] uuidPart = new byte[40];
+        byte[] uuidPart = new byte[this.headerLength];
         System.arraycopy(uuid, 0, uuidPart, 0, uuid.length);
         parts.add(uuidPart);
 
@@ -92,7 +102,7 @@ public class Serializer {
         List<byte[]> parts = new LinkedList<>();
 
         // Reserve bytes for packet identifier (uuid)
-        byte[] uuid = new byte[40];
+        byte[] uuid = new byte[this.headerLength];
         System.arraycopy(bytes, 0, uuid, 0, 40);
         uuid = removeTail(uuid);
 
@@ -103,7 +113,7 @@ public class Serializer {
 
         Packet instance = packet.get().newInstance();
 
-        int offset = 40;
+        int offset = this.headerLength;
         for (Field field : getFields(instance.getClass())) {
             Packet.Value value = field.getAnnotation(Packet.Value.class);
 
