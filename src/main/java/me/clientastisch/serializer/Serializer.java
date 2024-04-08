@@ -117,7 +117,7 @@ public class Serializer {
             Packet.Field value = field.getAnnotation(Packet.Field.class);
 
             byte[] contents = new byte[value.value()];
-            System.arraycopy(bytes, offset, contents, 0, value.value());
+            System.arraycopy(bytes, offset, contents, 0, Math.min(value.value(), bytes.length - offset));
             contents = removeTail(contents);
 
             offset += value.value();
