@@ -5,29 +5,23 @@ import lombok.SneakyThrows;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class Serializer {
 
     private final CopyOnWriteArrayList<Class<? extends Packet>> classes = new CopyOnWriteArrayList<>();
 
-    private final String separator, splitter;
+    private final int headerLength;
 
-    /**
-     * Create a new Serializer
-     *
-     * @param separator string to separate fields
-     * @param splitter string to separator field name from content
-     */
-    public Serializer(String separator, String splitter) {
-        this.separator = separator;
-        this.splitter = splitter;
+    public Serializer(int headerLength) {
+        this.headerLength = headerLength;
+    }
+
+    public Serializer() {
+        this(40);
     }
 
     /**
@@ -50,73 +44,108 @@ public class Serializer {
 
     /**
      * Serialize a packet to string
+     * The first 40 bytes are the packet uuid
      *
      * @param packet Packet instance
      * @return serialized packet
      */
-    public String serialize(Packet packet) {
-        StringBuilder builder = new StringBuilder(packet.getDescription().uuid());
+    @SneakyThrows
+    public byte[] serialize(Packet packet) {
+        List<byte[]> parts = new LinkedList<>();
 
-        getFields(packet.getClass()).forEach(field -> {
-            try {
-                builder.append(separator).append(field.getAnnotation(Packet.Value.class).name()).append(splitter).append(field.get(packet));
-            } catch (IllegalAccessException exception) {
-                exception.printStackTrace();
+        // Reserve bytes for packet identifier (uuid)
+        byte[] uuid = packet.getDescription().uuid().getBytes(StandardCharsets.US_ASCII);
+        byte[] uuidPart = new byte[this.headerLength];
+        System.arraycopy(uuid, 0, uuidPart, 0, uuid.length);
+        parts.add(uuidPart);
+
+        for (Field field : getFields(packet.getClass())) {
+            Packet.Value value = field.getAnnotation(Packet.Value.class);
+
+            byte[] contents = String.valueOf(field.get(packet)).getBytes(StandardCharsets.US_ASCII);
+            byte[] part = new byte[value.length()];
+
+            // Make sure that the reserved length is sufficient
+            if (part.length < contents.length) {
+                throw new IllegalStateException(String.format(
+                        "Content for field %s exceedes reserved length of %s bytes",
+                        field.getName(),
+                        value.length())
+                );
             }
-        });
 
-        return builder.toString();
+            System.arraycopy(contents, 0, part, 0, contents.length);
+            parts.add(part);
+        }
+
+        int totalLength = parts.stream().mapToInt(bytes -> bytes.length).sum();
+        byte[] payload = new byte[totalLength];
+
+        int offset = 0;
+        for (byte[] bytes : parts) {
+            System.arraycopy(bytes, 0, payload, offset, bytes.length);
+            offset += bytes.length;
+        }
+
+        return payload;
     }
 
     /**
      * Create a packet instance from a serialized
      * string
      *
-     * @param string serialized input
+     * @param bytes serialized input
      * @return packet instance
      */
     @SneakyThrows
-    public Packet deserialize(String string) {
-        String[] split = string.split(Pattern.quote(separator));
+    public Packet deserialize(byte[] bytes) {
+        List<byte[]> parts = new LinkedList<>();
 
-        Optional<Class<? extends Packet>> packet = getPacketByUUID(split[0]);
+        // Reserve bytes for packet identifier (uuid)
+        byte[] uuid = new byte[this.headerLength];
+        System.arraycopy(bytes, 0, uuid, 0, 40);
+        uuid = removeTail(uuid);
 
-        if(packet.isPresent()) {
-            CopyOnWriteArrayList<Field> fields = new CopyOnWriteArrayList<>(getFields(packet.get()));
-            Object instance = packet.get().newInstance();
+        Optional<Class<? extends Packet>> packet = getPacketByUUID(new String(uuid));
 
-            for(String word : Arrays.stream(split).skip(1).collect(Collectors.toList())) {
-                Field field = Arrays.stream(instance.getClass().getFields())
-                        .filter(var -> var.isAnnotationPresent(Packet.Value.class))
-                        .filter(var -> var.getAnnotation(Packet.Value.class).name().equals(word.split(Pattern.quote(splitter))[0])).findFirst().orElse(null);
-                field.set(instance, convert(field.getType(), word.split(Pattern.quote(splitter))[1]));
-                fields.remove(field);
-            }
+        if (!packet.isPresent())
+            return null;
 
-            fields.removeIf(remaining -> remaining.isAnnotationPresent(Packet.Optional.class));
+        Packet instance = packet.get().newInstance();
 
-            if(fields.size() > 0)
-                throw new RuntimeException("Non-optional Fields are undefinded: " + new ArrayList<>(fields));
+        int offset = this.headerLength;
+        for (Field field : getFields(instance.getClass())) {
+            Packet.Value value = field.getAnnotation(Packet.Value.class);
 
-            return (Packet) instance;
+            byte[] contents = new byte[value.length()];
+            System.arraycopy(bytes, offset, contents, 0, value.length());
+            contents = removeTail(contents);
+
+            offset += value.length();
+
+            String content = new String(contents, StandardCharsets.US_ASCII);
+            field.set(instance, convert(field.getType(), content));
         }
 
-        return null;
+        return instance;
     }
 
     /**
-     * Check if a serialized string truly is one of the
-     * known packets
+     * Remove the tailing 0 value bytes
      *
-     * @param string serialized input
-     * @return whether a packet is valid or not
+     * @param array byte array
+     * @return byte array without tailing 0 value bytes
      */
-    public boolean isValid(String string) {
-        try {
-            return deserialize(string) != null;
-        } catch (Exception ex) {
-            return false;
-        }
+    private byte[] removeTail(byte[] array) {
+        int index;
+        for (index = 0; index < array.length; index++)
+            if (array[index] == 0)
+                break;
+
+        byte[] trimArray = new byte[index];
+        System.arraycopy(array, 0, trimArray, 0, index);
+
+        return trimArray;
     }
 
     /**
@@ -137,7 +166,7 @@ public class Serializer {
      * @return the optional of the class if found
      */
     private Optional<Class<? extends Packet>> getPacketByUUID(String uuid) {
-        return Optional.ofNullable(classes.stream().filter(var -> var.getAnnotation(Packet.Description.class).uuid().equals(uuid)).findFirst().orElse(null));
+        return classes.stream().filter(var -> var.getAnnotation(Packet.Description.class).uuid().equals(uuid)).findFirst();
     }
 
     /**
@@ -155,7 +184,8 @@ public class Serializer {
             String className = type.equals(long.class) ? "java.lang.Long" : type.equals(int.class) ? "java.lang.Integer" : type.equals(double.class) ? "java.lang.Double" : type.equals(float.class) ? "java.lang.Float" : type.equals(byte.class) ? "java.lang.Byte" : type.equals(boolean.class) ? "java.lang.Boolean" : type.equals(short.class) ? "java.lang.Short" : type.getName();
             Method method = Class.forName(className).getMethod("valueOf", String.class);
             return method.invoke(null, name);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | ClassNotFoundException e) {
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException |
+                 ClassNotFoundException e) {
             return name;
         }
     }

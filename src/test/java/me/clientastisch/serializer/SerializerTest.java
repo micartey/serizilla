@@ -2,6 +2,7 @@ package me.clientastisch.serializer;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -12,25 +13,21 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 )
 public class SerializerTest extends Packet {
 
-    @Packet.Value(name = "test")
+    @Packet.Value(name = "test", length = 50)
     public TestClass test = new TestClass("Hallo");
 
-    @Packet.Optional
-    @Packet.Value(name = "name")
+    @Packet.Value(name = "name", length = 100)
     public List<String> name = Arrays.asList("hey", "du", "da");
 
     @Test
     public void onTest() {
-        Serializer serializer = new Serializer("&-&", "#+*#");
+        Serializer serializer = new Serializer();
         serializer.register(SerializerTest.class);
 
-        String serialize = serializer.serialize(new SerializerTest());
-        System.out.println(serialize);
+        byte[] serialize = serializer.serialize(new SerializerTest());
+        SerializerTest serializerTest = (SerializerTest) serializer.deserialize(serialize);
 
-        Packet object = serializer.deserialize(serialize);
-        System.out.println(serializer.serialize(object));
-
-        assertNotNull(object);
+        assertNotNull(serializerTest);
     }
 
     public static class TestClass {
