@@ -44,9 +44,8 @@ public class Serializer {
 
     /**
      * Serialize a packet to string
-     * The first 40 bytes are the packet uuid
      *
-     * @param packet Packet instance
+     *  @param packet Packet instance
      * @return serialized packet
      */
     @SneakyThrows
@@ -103,7 +102,7 @@ public class Serializer {
 
         // Reserve bytes for packet identifier (uuid)
         byte[] uuid = new byte[this.headerLength];
-        System.arraycopy(bytes, 0, uuid, 0, 40);
+        System.arraycopy(bytes, 0, uuid, 0, this.headerLength);
         uuid = removeTail(uuid);
 
         Optional<Class<? extends Packet>> packet = getPacketByUUID(new String(uuid));
