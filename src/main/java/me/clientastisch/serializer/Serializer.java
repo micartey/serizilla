@@ -130,6 +130,12 @@ public class Serializer {
         return instance;
     }
 
+    /**
+     * Remove the tailing 0 value bytes
+     *
+     * @param array byte array
+     * @return byte array without tailing 0 value bytes
+     */
     private byte[] removeTail(byte[] array) {
         int index;
         for (index = 0; index < array.length; index++)
