@@ -23,15 +23,15 @@ While Java presents its own features, there are some use cases, e.g. Sharing obj
 With the 2.0, you are able to create byte streams that are similar to those of protocols:
 
 ```
-                       0         15 16      31 32             95
-                        ┌──────────┬──────────┬───────────────┐ 
-                    0   │   Type   │  Topic   │   unique id   │ 
-                        ├──────────┴──────────┴───────────────┤ 
-                        │                                     │ 
-                        │               Message               │ 
-                    96  │          (Variable length)          │ 
-                        │                                     │ 
-                        └─────────────────────────────────────┘ 
+                               0         15 16      31 32             95
+                                ┌──────────┬──────────┬───────────────┐ 
+                            0   │   Type   │  Topic   │   unique id   │ 
+                                ├──────────┴──────────┴───────────────┤ 
+                                │                                     │ 
+                                │               Message               │ 
+                            96  │          (Variable length)          │ 
+                                │                                     │ 
+                                └─────────────────────────────────────┘ 
 ```
 
 These byte streams are being deconstructed and reconstructed from objects to objects and thus be shared
