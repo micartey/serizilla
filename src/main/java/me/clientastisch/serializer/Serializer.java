@@ -1,27 +1,35 @@
 package me.clientastisch.serializer;
 
 import lombok.SneakyThrows;
+import me.clientastisch.serializer.annotation.Description;
+import me.clientastisch.serializer.annotation.Serialize;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 public class Serializer {
 
-    private final CopyOnWriteArrayList<Class<? extends Packet>> classes = new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<Class<?>> classes = new CopyOnWriteArrayList<>();
 
+    private final Charset charset;
     private final int headerLength;
 
-    public Serializer(int headerLength) {
+    public Serializer(int headerLength, Charset charset) {
         this.headerLength = headerLength;
+        this.charset = charset;
     }
 
     public Serializer() {
-        this(40);
+        this(40, StandardCharsets.US_ASCII);
     }
 
     /**
@@ -29,7 +37,7 @@ public class Serializer {
      *
      * @param packet Packet class
      */
-    public void register(Class<? extends Packet> packet) {
+    public void register(Class<?> packet) {
         classes.add(packet);
     }
 
@@ -38,30 +46,33 @@ public class Serializer {
      *
      * @param packet Packet class
      */
-    public void unregister(Class<? extends Packet> packet) {
+    public void unregister(Class<?> packet) {
         classes.remove(packet);
     }
 
     /**
      * Serialize a packet to string
      *
-     *  @param packet Packet instance
+     * @param packet Packet instance
      * @return serialized packet
      */
     @SneakyThrows
-    public byte[] serialize(Packet packet) {
+    public byte[] serialize(Object packet) {
+        if (!packet.getClass().isAnnotationPresent(Description.class))
+            throw new IllegalStateException(String.format("%s annotation is missing", Description.class.getName()));
+
         List<byte[]> parts = new LinkedList<>();
 
         // Reserve bytes for packet identifier (uuid)
-        byte[] uuid = packet.getDescription().uuid().getBytes(StandardCharsets.US_ASCII);
+        byte[] uuid = packet.getClass().getAnnotation(Description.class).uuid().getBytes(this.charset);
         byte[] uuidPart = new byte[this.headerLength];
         System.arraycopy(uuid, 0, uuidPart, 0, uuid.length);
         parts.add(uuidPart);
 
         for (Field field : getFields(packet.getClass())) {
-            Packet.Field value = field.getAnnotation(Packet.Field.class);
+            Serialize value = field.getAnnotation(Serialize.class);
 
-            byte[] contents = String.valueOf(field.get(packet)).getBytes(StandardCharsets.US_ASCII);
+            byte[] contents = String.valueOf(field.get(packet)).getBytes(this.charset);
             byte[] part = new byte[value.value()];
 
             // Make sure that the reserved length is sufficient
@@ -97,24 +108,22 @@ public class Serializer {
      * @return packet instance
      */
     @SneakyThrows
-    public Packet deserialize(byte[] bytes) {
-        List<byte[]> parts = new LinkedList<>();
-
+    public Object deserialize(byte[] bytes) {
         // Reserve bytes for packet identifier (uuid)
         byte[] uuid = new byte[this.headerLength];
         System.arraycopy(bytes, 0, uuid, 0, this.headerLength);
         uuid = removeTail(uuid);
 
-        Optional<Class<? extends Packet>> packet = getPacketByUUID(new String(uuid));
+        Optional<Class<?>> packet = getPacketByUUID(new String(uuid));
 
         if (!packet.isPresent())
             return null;
 
-        Packet instance = packet.get().newInstance();
+        Object instance = packet.get().newInstance();
 
         int offset = this.headerLength;
         for (Field field : getFields(instance.getClass())) {
-            Packet.Field value = field.getAnnotation(Packet.Field.class);
+            Serialize value = field.getAnnotation(Serialize.class);
 
             byte[] contents = new byte[value.value()];
             System.arraycopy(bytes, offset, contents, 0, Math.min(value.value(), bytes.length - offset));
@@ -122,7 +131,7 @@ public class Serializer {
 
             offset += value.value();
 
-            String content = new String(contents, StandardCharsets.US_ASCII);
+            String content = new String(contents, this.charset);
             field.set(instance, convert(field.getType(), content));
         }
 
@@ -153,8 +162,8 @@ public class Serializer {
      * @param packet Packet class
      * @return all Fields in a List
      */
-    private List<Field> getFields(Class<? extends Packet> packet) {
-        return Arrays.stream(packet.getFields()).filter(field -> field.isAnnotationPresent(Packet.Field.class)).collect(Collectors.toList());
+    private List<Field> getFields(Class<?> packet) {
+        return Arrays.stream(packet.getFields()).filter(field -> field.isAnnotationPresent(Serialize.class)).collect(Collectors.toList());
     }
 
     /**
@@ -164,8 +173,8 @@ public class Serializer {
      * @param uuid packet description
      * @return the optional of the class if found
      */
-    private Optional<Class<? extends Packet>> getPacketByUUID(String uuid) {
-        return classes.stream().filter(var -> var.getAnnotation(Packet.Description.class).uuid().equals(uuid)).findFirst();
+    private Optional<Class<?>> getPacketByUUID(String uuid) {
+        return classes.stream().filter(var -> var.getAnnotation(Description.class).uuid().equals(uuid)).findFirst();
     }
 
     /**

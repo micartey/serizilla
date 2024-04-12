@@ -1,5 +1,7 @@
 package me.clientastisch.serializer;
 
+import me.clientastisch.serializer.annotation.Description;
+import me.clientastisch.serializer.annotation.Serialize;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -7,15 +9,15 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@Packet.Description(
+@Description(
         uuid = "Serializer.Test"
 )
-public class SerializerTest extends Packet {
+public class SerializerTest {
 
-    @Field(value = 50)
+    @Serialize(50)
     public TestClass test = new TestClass("Hallo");
 
-    @Field(value = 100)
+    @Serialize(100)
     public List<String> name = Arrays.asList("hey", "du", "da");
 
     @Test
@@ -31,7 +33,7 @@ public class SerializerTest extends Packet {
 
     public static class TestClass {
 
-        private String value;
+        private final String value;
 
         public TestClass(String value) {
             this.value = value;

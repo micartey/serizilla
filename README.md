@@ -17,8 +17,9 @@
 
 ## 📚 Introduction
 
-This project aims to easily serialize and to the corresponding objects. 
-While Java presents its own features, there are some use cases, e.g. Sharing objects between programming languages or sending objects over the network when normal serialization does not meet the required criteria.
+This project aims to easily serialize objects to and from byte streams. 
+While Java presents its own features, there are some use cases, e.g. sharing objects between 
+programming languages, sending objects over the network or creating protocols.
 
 With the 2.0, you are able to create byte streams that are similar to those of protocols:
 
@@ -34,40 +35,34 @@ With the 2.0, you are able to create byte streams that are similar to those of p
                             └─────────────────────────────────────┘ 
 ```
 
-These byte streams are being deconstructed and reconstructed from objects to objects and thus be shared
-between languages and networks.
+These byte streams are being deconstructed and reconstructed from objects to objects and thus 
+can be shared between languages and networks.
 
 ## 🎈 Getting started
 
 The serializer heavily depends on annotations as most of my other projects do as well. 
-Each class that should be serialized is called an `Packet` because this project was mainly developed for networking. 
 To get started, add the following annotation on top of you class:
 
 ```java
-@Packet.Description(
+@Description(
     uuid = "SomeUniqueId"
 )
-```
-
-You class also needs to extend the Packet classs. You also need a default constructor with no parameters.
-
-```java
-@Packet.Description(
-    uuid = "SomeUniqueId"
-)
-public class MyTestClass extends Packet {
-
+public class MyTestClass {
+    
+    // With empty constructor
+    
 }
 ```
 
-The last step is to provide all fields of interest with annotations.
-You always need to specify the byte length.
+Fields that need to be serialized, need to be public and annotated.
+As serizilla uses byte streams to create protocols, you are required to reserve byte lengths for each field.
+The default length is `128` bytes per field. 
 
 ```java
-@Packet.Value(1000)
+@Serialize(1000)
 public List<String> names = Arrays.asList("Hans", "Peter", "Dieter");
 
-@Packet.Value(16)
+@Serialize(16) // Only 16 bytes long name
 public String test;
 ```
 
