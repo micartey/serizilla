@@ -166,6 +166,7 @@ public class Serializer {
     private List<Field> getFields(Class<?> packet) {
         return Arrays.stream(packet.getDeclaredFields())
                 .filter(field -> field.isAnnotationPresent(Serialize.class))
+                .peek(field -> field.setAccessible(true))
                 .collect(Collectors.toList());
     }
 
