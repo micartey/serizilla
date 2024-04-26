@@ -1,4 +1,4 @@
-package me.clientastisch.serializer.annotation;
+package me.micartey.serizilla.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

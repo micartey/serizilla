@@ -1,7 +1,7 @@
-package me.clientastisch.serializer;
+package me.micartey.serizilla;
 
-import me.clientastisch.serializer.annotation.Description;
-import me.clientastisch.serializer.annotation.Serialize;
+import me.micartey.serizilla.annotation.Description;
+import me.micartey.serizilla.annotation.Serialize;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -15,10 +15,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class SerializerTest {
 
     @Serialize(50)
-    public TestClass test = new TestClass("Hallo");
+    private TestClass test = new TestClass("Hallo");
 
     @Serialize(100)
-    public List<String> name = Arrays.asList("hey", "du", "da");
+    private List<String> name = Arrays.asList("hey", "du", "da");
 
     @Test
     public void onTest() {

@@ -1,8 +1,8 @@
-package me.clientastisch.serializer;
+package me.micartey.serizilla;
 
 import lombok.SneakyThrows;
-import me.clientastisch.serializer.annotation.Description;
-import me.clientastisch.serializer.annotation.Serialize;
+import me.micartey.serizilla.annotation.Description;
+import me.micartey.serizilla.annotation.Serialize;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Serializer {
 
@@ -165,8 +164,8 @@ public class Serializer {
      */
     private List<Field> getFields(Class<?> packet) {
         return Arrays.stream(packet.getDeclaredFields())
-                .filter(field -> field.isAnnotationPresent(Serialize.class))
                 .peek(field -> field.setAccessible(true))
+                .filter(field -> field.isAnnotationPresent(Serialize.class))
                 .collect(Collectors.toList());
     }
 
