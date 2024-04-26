@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Serializer {
 
@@ -163,7 +164,9 @@ public class Serializer {
      * @return all Fields in a List
      */
     private List<Field> getFields(Class<?> packet) {
-        return Arrays.stream(packet.getFields()).filter(field -> field.isAnnotationPresent(Serialize.class)).collect(Collectors.toList());
+        return Arrays.stream(packet.getDeclaredFields())
+                .filter(field -> field.isAnnotationPresent(Serialize.class))
+                .collect(Collectors.toList());
     }
 
     /**
