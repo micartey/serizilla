@@ -9,10 +9,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
@@ -188,9 +185,18 @@ public class Serializer {
      * @return content parsed to field type
      */
     private Object convert(Class<?> type, String name) {
+        if (name.equals("null"))
+            return null;
+
         try {
-            if (type.equals(List.class))
-                return Arrays.asList(name.replaceAll("^\\[|]$", "").split(", "));
+            if (type.equals(List.class)) {
+                String data = name.replaceAll("^\\[|]$", "");
+
+                if (data.isEmpty())
+                    return new ArrayList<>();
+
+                return Arrays.asList(data.split(", "));
+            }
 
             String className = type.equals(long.class) ? "java.lang.Long" : type.equals(int.class) ? "java.lang.Integer" : type.equals(double.class) ? "java.lang.Double" : type.equals(float.class) ? "java.lang.Float" : type.equals(byte.class) ? "java.lang.Byte" : type.equals(boolean.class) ? "java.lang.Boolean" : type.equals(short.class) ? "java.lang.Short" : type.getName();
             Method method = Class.forName(className).getMethod("valueOf", String.class);
